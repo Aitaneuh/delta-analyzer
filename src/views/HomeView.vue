@@ -4,7 +4,7 @@
 
 
 <template>
-    <div>
+    <div class="m-auto container bg-amber-600">
         <h1>test</h1>
     </div>
 </template>
