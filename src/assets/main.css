@@ -1,10 +1,20 @@
 @import 'tailwindcss';
 
+:root {
+  --text-color: #ffffff;
+  --accent-color: #27f020; /* global scope */
+  --accent-hover-color: #1fc019;
+}
+
 html,
 body {
   background-color: #18181b;
-  color: white;
+  color: var(--text-color);
   padding: 0px;
   margin: 0px;
   font-family: 'Jetbrains Mono', 'Courier New', Courier, monospace;
+}
+
+.accent {
+  color: var(--accent-color);
 }
