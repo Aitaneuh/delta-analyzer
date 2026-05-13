@@ -2,8 +2,8 @@
 
 :root {
   --text-color: #ffffff;
-  --accent-color: #27f020; /* global scope */
-  --accent-hover-color: #1fc019;
+  --accent-color: #d32a2a; /* global scope */
+  --accent-hover-color: #9e1f1f;
 }
 
 html,
@@ -17,4 +17,36 @@ body {
 
 .accent {
   color: var(--accent-color);
+}
+
+.accent-accent {
+  accent-color: var(--accent-color);
+}
+
+.border-accent {
+  border-color: var(--accent-color);
+}
+
+.focus-border-accent:focus {
+  border-color: var(--accent-color);
+}
+
+.bg-accent {
+  background-color: var(--accent-color);
+}
+
+.hover-accent {
+  color: var(--accent-color);
+}
+
+.hover-bg-accent {
+  background-color: var(--accent-color);
+}
+
+.hover-accent:hover {
+  color: var(--accent-hover-color);
+}
+
+.hover-bg-accent:hover {
+  background-color: var(--accent-hover-color);
 }
