@@ -2,6 +2,8 @@
 
 html,
 body {
+  background-color: #18181b;
+  color: white;
   padding: 0px;
   margin: 0px;
   font-family: 'Jetbrains Mono', 'Courier New', Courier, monospace;
