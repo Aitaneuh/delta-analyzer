@@ -2,9 +2,11 @@
 import { ref, onMounted, watch } from 'vue'
 import { Chessground } from 'chessground'
 import type { Api } from 'chessground/api'
+
+// Official Lichess Layout & Theme Asset Streams
 import 'chessground/assets/chessground.base.css'
-import 'chessground/assets/chessground.brown.css'
-import 'chessground/assets/chessground.cburnett.css'
+import 'chessground/assets/chessground.brown.css'     // Classic brown/wood style theme
+import 'chessground/assets/chessground.cburnett.css'  // Standard crisp piece set
 
 interface Props {
   fen?: string
@@ -26,13 +28,16 @@ onMounted(() => {
     boardApi = Chessground(boardContainer.value, {
       fen: props.fen,
       orientation: props.orientation,
-      viewOnly: !props.interactive,
+      viewOnly: false, // Must be false so the board registers right-clicks for shapes
       movable: {
         free: false,
-        color: undefined,
+        color: props.interactive ? 'both' : undefined, // Controls piece dragging based on prop
+        dests: undefined
       },
       drawable: {
-        enabled: false,
+        enabled: true,
+        visible: true,
+        eraseOnClick: true, // Left click clears everything, exactly like Lichess
       },
       highlight: {
         lastMove: true,
@@ -48,35 +53,40 @@ onMounted(() => {
 
 watch(() => props.fen, (newFen) => {
   if (boardApi && newFen) {
-    boardApi.set({
-      fen: newFen,
-    })
+    boardApi.set({ fen: newFen })
   }
 })
 
 watch(() => props.orientation, (newOrientation) => {
   if (boardApi) {
+    boardApi.set({ orientation: newOrientation })
+  }
+})
+
+watch(() => props.interactive, (isNewInteractive) => {
+  if (boardApi) {
     boardApi.set({
-      orientation: newOrientation,
+      movable: { color: isNewInteractive ? 'both' : undefined }
     })
   }
 })
 </script>
 
 <template>
-  <div class="bg-[#1a1d21] rounded-lg overflow-hidden border border-gray-800">
-    <div ref="boardContainer" class="chessboard-container" style="width: 100%; aspect-ratio: 1/1;"></div>
+  <div class="bg-[#1a1d21] rounded-lg overflow-hidden border border-gray-800 p-2">
+    <div ref="boardContainer" class="chessboard-container blue" @contextmenu.prevent
+      style="width: 100%; aspect-ratio: 1/1;"></div>
   </div>
 </template>
 
 <style scoped>
+/* Ensure the grid wrap fills out the parent dimensions fluidly */
 .chessboard-container :deep(.cg-wrap) {
   width: 100%;
   height: 100%;
 }
 
-/* Custom styling to match dark theme */
 .chessboard-container :deep(cg-board) {
-  background-color: #ff4848;
+  background-color: #ff6666;
 }
 </style>

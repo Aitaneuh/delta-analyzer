@@ -24,15 +24,14 @@ export const useGameStore = defineStore('game', () => {
     {
       id: 'gh3970g3',
       event: 'Titled Tuesday Blitz September 2025',
-      game_name: 'Blitz vs Magnus',
       played_date: '2025-09-02',
       imported_date: '2026-05-13',
       white_player: 'MagnusCarlsen',
-      black_player: 'User123',
+      black_player: 'Aitaneuh',
       white_elo: 2850,
-      black_elo: 2400,
-      result: '1-0',
-      winner: 'white',
+      black_elo: 3000,
+      result: '0-1',
+      winner: 'black',
       time_control: '180+2',
       game_type: 'blitz',
       eco_code: 'B20',
@@ -43,8 +42,13 @@ export const useGameStore = defineStore('game', () => {
       moves_count: 4,
       initial_fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
       final_fen: 'rnbqkbnr/pp1ppppp/8/2p5/3PP3/8/PPP2PPP/RNBQKBNR b KQkq d3 0 2',
-      source: 'web_upload',
+      source: 'unknown',
       link: '',
+      white_country: null,
+      black_country: null,
+      white_avatar: null,
+      black_avatar: null,
+      has_annotations: false,
     },
   ])
 
@@ -57,7 +61,7 @@ export const useGameStore = defineStore('game', () => {
   // 2. GETTERS
   // ==========================================
 
-  // Complete filtering logic using all criteria from your Search view
+  // Complete filtering logic using all criteria from Search view
   const filteredGames = computed(() => {
     return allGames.value.filter((game) => {
       // Game Type Filter
@@ -70,12 +74,6 @@ export const useGameStore = defineStore('game', () => {
         !filters.value.player_name ||
         game.white_player.toLowerCase().includes(filters.value.player_name.toLowerCase()) ||
         game.black_player.toLowerCase().includes(filters.value.player_name.toLowerCase())
-
-      // Game Title Filter
-      const matchGameName =
-        !filters.value.game_name ||
-        game.game_name.toLowerCase().includes(filters.value.game_name.toLowerCase()) ||
-        game.event.toLowerCase().includes(filters.value.game_name.toLowerCase())
 
       // Result Filter (1-0, 0-1, 1/2-1/2)
       const matchResult =
@@ -106,7 +104,6 @@ export const useGameStore = defineStore('game', () => {
       return (
         matchType &&
         matchPlayer &&
-        matchGameName &&
         matchResult &&
         matchTermination &&
         matchEco &&

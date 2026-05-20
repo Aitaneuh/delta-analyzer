@@ -44,12 +44,6 @@ const resultText = computed(() => {
   return props.result
 })
 
-const sourceIcon = computed(() => {
-  if (props.source === 'chess.com') return '♟️'
-  if (props.source === 'lichess') return '♞'
-  return '🎮'
-})
-
 const formattedDate = computed(() => {
   if (!props.date) return null
 
@@ -121,8 +115,7 @@ const formattedDate = computed(() => {
       <!-- Source -->
       <div class="pb-3 border-b border-gray-800">
         <span class="text-gray-500">Source: </span>
-        <span class="text-gray-200">
-          {{ sourceIcon }} {{ source }}
+        <span class="text-gray-200"> {{ source }}
         </span>
       </div>
 
