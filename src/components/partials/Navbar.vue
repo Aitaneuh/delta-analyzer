@@ -1,8 +1,13 @@
 <template>
-  <nav class="navbar p-5 flex top-0 z-0 bg-zinc-950 mb-10">
+  <nav class="navbar p-5 flex top-0 z-0 bg-zinc-950">
     <div class="logo">
       <router-link to="/" class="logo-link">
-        <img src="/images/delta_analyzer_logo_white_red.png" alt="Delta Analyzer logo" width="30" height="30" />
+        <img
+          src="/images/delta_analyzer_logo_white_red.png"
+          alt="Delta Analyzer logo"
+          width="30"
+          height="30"
+        />
         <span>Delta <span class="accent">Analyzer</span></span>
       </router-link>
     </div>
