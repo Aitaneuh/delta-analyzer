@@ -1,139 +1,130 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { ParsedGame } from '../services/pgnParser'
+import { api } from '../services/api'
+import { computePositions } from '../services/pgnParser'
+import type { BoardPosition, GameSummary, ParsedGame } from '../services/pgnParser'
+import { EngineStoppedError, StockfishEngine, type PositionEvaluator } from '../services/engine'
+import {
+  ANALYSIS_LIMITS,
+  ENGINE_NAME,
+  buildReport,
+  evaluatePositions,
+  isAnalyzable,
+  type GameAnalysis,
+  type PositionEval,
+} from '../services/gameAnalysis'
+import { getEcoOpeningName } from '../data/ecoOpenings'
+
+const TERMINATION_LABELS: Record<string, string> = {
+  mate: 'checkmate',
+  resign: 'resignation',
+  time: 'timeout',
+}
+
+export interface GameFilters {
+  game_name: string
+  player_name: string
+  game_types: string[]
+  results: string[]
+  terminations: string[]
+  eco_code: string
+  // A cleared number input reports an empty string
+  min_elo: number | '' | null
+  max_elo: number | '' | null
+  time_control_kind: '' | 'standard' | 'increment'
+  played_date: string
+  imported_date: string
+}
+
+export interface ImportResult {
+  games: { id: string; isNew: boolean }[]
+  created: number
+  duplicates: number
+}
+
+interface GameListResponse {
+  games: GameSummary[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export function createEmptyFilters(): GameFilters {
+  return {
+    game_name: '',
+    player_name: '',
+    game_types: [],
+    results: [],
+    terminations: [],
+    eco_code: '',
+    min_elo: null,
+    max_elo: null,
+    time_control_kind: '',
+    played_date: '',
+    imported_date: '',
+  }
+}
+
+function filtersToQuery(filters: GameFilters, page: number): string {
+  const query = new URLSearchParams({ page: String(page) })
+  for (const [key, value] of Object.entries(filters)) {
+    for (const item of Array.isArray(value) ? value : [value]) {
+      if (item !== '' && item !== null) query.append(key, String(item))
+    }
+  }
+  return query.toString()
+}
 
 export const useGameStore = defineStore('game', () => {
   // ==========================================
   // 1. STATE
   // ==========================================
-  const filters = ref({
-    game_name: '',
-    player_name: '',
-    game_types: [] as string[],
-    results: [] as string[],
-    terminations: [] as string[],
-    eco_code: '',
-    min_elo: null as number | null,
-    max_elo: null as number | null,
-    played_date: '',
-    imported_date: '',
-  })
+  const filters = ref<GameFilters>(createEmptyFilters())
 
-  const allGames = ref<ParsedGame[]>([
-    // Fallback/Initial Mock matching your shape requirements
-    {
-      id: 'gh3970g3',
-      event: 'Titled Tuesday Blitz September 2025',
-      played_date: '2025-09-02',
-      imported_date: '2026-05-13',
-      white_player: 'MagnusCarlsen',
-      black_player: 'Aitaneuh',
-      white_elo: 2850,
-      black_elo: 3000,
-      result: '0-1',
-      winner: 'black',
-      time_control: '180+2',
-      game_type: 'blitz',
-      eco_code: 'B20',
-      opening_name: 'Sicilian',
-      termination: 'mate',
-      pgn: '[Event "Titled Tuesday..."]',
-      moves: ['1. e4', 'c5', '2. d4', 'cxd4'], // Array format expected by replayer
-      moves_count: 4,
-      initial_fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-      final_fen: 'rnbqkbnr/pp1ppppp/8/2p5/3PP3/8/PPP2PPP/RNBQKBNR b KQkq d3 0 2',
-      source: 'unknown',
-      link: '',
-      white_country: null,
-      black_country: null,
-      white_avatar: null,
-      black_avatar: null,
-      has_annotations: false,
-    },
-  ])
+  const games = ref<GameSummary[]>([])
+  const totalGames = ref(0)
+  const page = ref(1)
+  const pageSize = ref(25)
+  const listLoading = ref(false)
+  const listError = ref<string | null>(null)
+  let latestListRequest = 0
 
   const currentGame = ref<ParsedGame | null>(null)
+  const currentPositions = ref<BoardPosition[]>([])
   const currentMoveIndex = ref(0)
   const loading = ref(false)
   const error = ref<string | null>(null)
 
+  const isAnalyzing = ref(false)
+  const analysisError = ref<string | null>(null)
+  const analysisHidden = ref(false) // Hides the eval bar, arrow, move marks and stats
+  const liveEvals = ref<PositionEval[]>([]) // Results so far while an analysis is running
+  let activeEngine: PositionEvaluator | null = null
+
   // ==========================================
   // 2. GETTERS
   // ==========================================
+  const totalPages = computed(() => Math.max(1, Math.ceil(totalGames.value / pageSize.value)))
 
-  // Complete filtering logic using all criteria from Search view
-  const filteredGames = computed(() => {
-    return allGames.value.filter((game) => {
-      // Game Type Filter
-      const matchType =
-        filters.value.game_types.length === 0 ||
-        filters.value.game_types.includes(game.game_type.toLowerCase())
+  const currentPosition = computed(() => currentPositions.value[currentMoveIndex.value] ?? null)
 
-      // Player Name Filter (Fuzzy check matching White or Black)
-      const matchPlayer =
-        !filters.value.player_name ||
-        game.white_player.toLowerCase().includes(filters.value.player_name.toLowerCase()) ||
-        game.black_player.toLowerCase().includes(filters.value.player_name.toLowerCase())
+  const currentFen = computed(() => currentPosition.value?.fen ?? null)
 
-      // Result Filter (1-0, 0-1, 1/2-1/2)
-      const matchResult =
-        filters.value.results.length === 0 || filters.value.results.includes(game.result)
-
-      // Termination Filter (mate, resign, time)
-      const matchTermination =
-        filters.value.terminations.length === 0 ||
-        filters.value.terminations.includes(game.termination.toLowerCase())
-
-      // ECO Code Filter
-      const matchEco = !filters.value.eco_code || game.eco_code.startsWith(filters.value.eco_code)
-
-      // Elo Range Filter
-      const minEloBound = filters.value.min_elo ?? 0
-      const maxEloBound = filters.value.max_elo ?? 9999
-      const matchElo =
-        (game.white_elo >= minEloBound || game.black_elo >= minEloBound) &&
-        game.white_elo <= maxEloBound &&
-        game.black_elo <= maxEloBound
-
-      // Timeline Date Filters
-      const matchPlayedDate =
-        !filters.value.played_date || game.played_date === filters.value.played_date
-      const matchImportedDate =
-        !filters.value.imported_date || game.imported_date === filters.value.imported_date
-
-      return (
-        matchType &&
-        matchPlayer &&
-        matchResult &&
-        matchTermination &&
-        matchEco &&
-        matchElo &&
-        matchPlayedDate &&
-        matchImportedDate
-      )
-    })
+  const canAnalyze = computed(() => {
+    const game = currentGame.value
+    return !!game && game.moves_count > 0 && isAnalyzable(game.pgn)
   })
 
-  const currentPosition = computed(() => {
-    if (!currentGame.value) return null
-    return {
-      moveIndex: currentMoveIndex.value,
-      move: currentGame.value.moves[currentMoveIndex.value] || null,
-      fen: currentFen.value,
-    }
+  const currentEvals = computed(() => currentGame.value?.analysis?.evals ?? liveEvals.value)
+
+  const currentEval = computed(() => {
+    if (analysisHidden.value) return null
+    return currentEvals.value[currentMoveIndex.value] ?? null
   })
 
-  const currentFen = computed(() => {
-    if (!currentGame.value) return null
-
-    if (currentMoveIndex.value === 0) {
-      return currentGame.value.initial_fen
-    }
-    if (currentMoveIndex.value === currentGame.value.moves_count) {
-      return currentGame.value.final_fen
-    }
-    // Standard position computation hook (e.g. via chess.js) belongs here
-    return currentGame.value.initial_fen
+  const analysisReport = computed(() => {
+    if (analysisHidden.value || !currentGame.value || currentEvals.value.length === 0) return null
+    return buildReport(currentGame.value.moves, currentPositions.value, currentEvals.value)
   })
 
   const gameMetadata = computed(() => {
@@ -146,11 +137,11 @@ export const useGameStore = defineStore('game', () => {
       result: currentGame.value.result,
       winner: currentGame.value.winner,
       date: currentGame.value.played_date,
-      opening: currentGame.value.opening_name,
+      opening: currentGame.value.opening_name ?? getEcoOpeningName(currentGame.value.eco_code),
       ecoCode: currentGame.value.eco_code,
       timeControl: currentGame.value.time_control,
       gameType: currentGame.value.game_type,
-      termination: currentGame.value.termination,
+      termination: TERMINATION_LABELS[currentGame.value.termination_type ?? ''] ?? null,
       source: currentGame.value.source,
       link: currentGame.value.link,
     }
@@ -165,31 +156,113 @@ export const useGameStore = defineStore('game', () => {
   // ==========================================
   // 3. ACTIONS
   // ==========================================
-  function updateFilters(newFilters: any) {
-    filters.value = { ...newFilters }
+  async function fetchGames(): Promise<void> {
+    const request = ++latestListRequest
+    listLoading.value = true
+    listError.value = null
+
+    try {
+      const result = await api<GameListResponse>(
+        `/api/games?${filtersToQuery(filters.value, page.value)}`,
+      )
+      if (request !== latestListRequest) return // A newer search has replaced this one
+      games.value = result.games
+      totalGames.value = result.total
+      pageSize.value = result.pageSize
+    } catch (err) {
+      if (request === latestListRequest) {
+        listError.value = err instanceof Error ? err.message : 'Could not load games.'
+      }
+    } finally {
+      if (request === latestListRequest) listLoading.value = false
+    }
   }
 
-  function addGame(game: ParsedGame): void {
-    allGames.value.unshift(game) // Adds new matches to top of list
+  function updateFilters(newFilters: GameFilters): Promise<void> {
+    filters.value = { ...newFilters }
+    page.value = 1
+    return fetchGames()
+  }
+
+  function goToPage(newPage: number): Promise<void> {
+    page.value = Math.min(totalPages.value, Math.max(1, newPage))
+    return fetchGames()
+  }
+
+  function importPgn(pgn: string): Promise<ImportResult> {
+    return api<ImportResult>('/api/games', {
+      method: 'POST',
+      body: { pgn, accept_permanent: true },
+    })
+  }
+
+  function importFromLichess(max: number): Promise<ImportResult> {
+    return api<ImportResult>('/api/lichess/import', {
+      method: 'POST',
+      body: { max, accept_permanent: true },
+    })
+  }
+
+  function cancelAnalysis(): void {
+    activeEngine?.terminate()
+    activeEngine = null
+    isAnalyzing.value = false
+    liveEvals.value = []
+  }
+
+  async function startAnalysis(
+    createEvaluator: () => PositionEvaluator = () => new StockfishEngine(),
+  ): Promise<void> {
+    const game = currentGame.value
+    if (!game || isAnalyzing.value || !canAnalyze.value) return
+
+    const engine = createEvaluator()
+    activeEngine = engine
+    isAnalyzing.value = true
+    analysisHidden.value = false
+    analysisError.value = null
+    liveEvals.value = []
+
+    try {
+      await evaluatePositions(currentPositions.value, engine, (evaluation) => {
+        liveEvals.value.push(evaluation)
+      })
+
+      // The server keeps the first analysis of each game and returns whichever it has
+      game.analysis = await api<GameAnalysis>(`/api/games/${game.id}/analysis`, {
+        method: 'PUT',
+        body: { engine: ENGINE_NAME, depth: ANALYSIS_LIMITS.depth, evals: liveEvals.value },
+      })
+    } catch (err) {
+      if (!(err instanceof EngineStoppedError)) {
+        analysisError.value = err instanceof Error ? err.message : 'The analysis failed.'
+      }
+    } finally {
+      // A newer run may have replaced this one after it was cancelled
+      if (activeEngine === engine) {
+        engine.terminate()
+        activeEngine = null
+        isAnalyzing.value = false
+        liveEvals.value = []
+      }
+    }
   }
 
   async function fetchGame(id: string): Promise<void> {
+    cancelAnalysis()
+    analysisError.value = null
     loading.value = true
     error.value = null
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 150)) // Quick simulation delay
-      const game = allGames.value.find((g) => g.id === id)
-
-      if (!game) {
-        throw new Error(`Game with ID ${id} not found`)
-      }
-
+      const game = await api<ParsedGame>(`/api/games/${encodeURIComponent(id)}`)
+      currentPositions.value = computePositions(game.pgn)
       currentGame.value = game
       currentMoveIndex.value = 0
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load game'
       currentGame.value = null
+      currentPositions.value = []
       throw err
     } finally {
       loading.value = false
@@ -227,7 +300,9 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function reset(): void {
+    cancelAnalysis()
     currentGame.value = null
+    currentPositions.value = []
     currentMoveIndex.value = 0
     error.value = null
   }
@@ -235,23 +310,40 @@ export const useGameStore = defineStore('game', () => {
   return {
     // Shared States
     filters,
-    allGames,
+    games,
+    totalGames,
+    page,
+    pageSize,
+    listLoading,
+    listError,
     currentGame,
     currentMoveIndex,
     loading,
     error,
+    isAnalyzing,
+    analysisError,
+    analysisHidden,
 
     // Core Engine Getters
-    filteredGames,
+    totalPages,
     currentPosition,
     currentFen,
     gameMetadata,
     isAtStart,
     isAtEnd,
+    canAnalyze,
+    currentEvals,
+    currentEval,
+    analysisReport,
 
     // Core Engine Actions
+    fetchGames,
     updateFilters,
-    addGame,
+    goToPage,
+    importPgn,
+    importFromLichess,
+    startAnalysis,
+    cancelAnalysis,
     fetchGame,
     nextMove,
     prevMove,

@@ -1,48 +1,49 @@
 <script setup lang="ts">
-import type { ChessGame } from '@/types/game'
-import { useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { getEcoOpeningName } from '@/data/ecoOpenings'
+import type { GameSummary } from '@/services/pgnParser'
 
 const props = defineProps<{
-  game: ChessGame
+  game: GameSummary
 }>()
 
-const router = useRouter()
-
-const goToGame = () => {
-  router.push({ name: 'game-detail', params: { id: props.game.id } })
-}
+const openingLabel = computed(() => {
+  const { eco_code, opening_name } = props.game
+  const ecoName = getEcoOpeningName(eco_code)
+  return ecoName ? `${eco_code} ${ecoName}` : (opening_name ?? eco_code ?? 'Unknown opening')
+})
 
 // Helper to format the result colors
 const getResultClass = (player: 'white' | 'black') => {
-  if (props.game.result === '1/2-1/2') return 'text-gray-400'
-  if (player === 'white') {
-    return props.game.result === '1-0' ? 'text-green-500 font-bold' : 'text-red-500'
-  } else {
-    return props.game.result === '0-1' ? 'text-green-500 font-bold' : 'text-red-500'
-  }
+  if (!props.game.winner || props.game.winner === 'draw') return 'text-gray-400'
+  return props.game.winner === player ? 'text-green-500 font-bold' : 'text-red-500'
 }
 </script>
 
 <template>
-  <div
-    @click="goToGame"
-    class="grid grid-cols-12 gap-4 items-center p-4 bg-[#1a1d21] border border-gray-800 rounded-lg hover:border-accent hover:bg-[#252a30] transition cursor-pointer group"
+  <router-link
+    :to="{ name: 'game-detail', params: { id: game.id } }"
+    class="grid grid-cols-2 md:grid-cols-12 gap-x-4 gap-y-3 items-center p-4 bg-[#1a1d21] border border-gray-800 rounded-lg hover:border-accent hover:bg-[#252a30] transition cursor-pointer group"
   >
     <!-- Metadata (Type & ECO) -->
-    <div class="col-span-2 flex flex-col items-start">
+    <div class="md:col-span-3 flex flex-col items-start min-w-0">
       <span class="text-[10px] uppercase font-bold text-gray-500 tracking-widest">{{
         game.game_type
       }}</span>
-      <span class="text-xs font-mono text-accent bg-accent/10 py-0.5 rounded">{{
-        game.opening
-      }}</span>
+      <span
+        class="max-w-full truncate text-xs font-mono text-accent py-0.5 rounded"
+        :title="openingLabel"
+        >{{ openingLabel }}</span
+      >
     </div>
 
     <!-- Players Section -->
-    <div class="col-span-6 flex items-center justify-center space-x-4">
-      <div class="text-right flex-1">
-        <span class="block text-sm" :class="getResultClass('white')">{{ game.white_player }}</span>
-        <span class="text-[10px] text-gray-500">({{ game.white_elo }})</span>
+    <div class="col-span-2 order-last md:order-none md:col-span-6 flex items-center gap-2 sm:gap-4">
+      <div class="text-right flex-1 min-w-0">
+        <span class="block truncate text-sm" :class="getResultClass('white')">{{
+          game.white_player
+        }}</span>
+        <span v-if="game.white_elo" class="text-[10px] text-gray-500">({{ game.white_elo }})</span>
       </div>
 
       <div
@@ -51,21 +52,26 @@ const getResultClass = (player: 'white' | 'black') => {
         VS
       </div>
 
-      <div class="text-left flex-1">
-        <span class="block text-sm" :class="getResultClass('black')">{{ game.black_player }}</span>
-        <span class="text-[10px] text-gray-500">({{ game.black_elo }})</span>
+      <div class="text-left flex-1 min-w-0">
+        <span class="block truncate text-sm" :class="getResultClass('black')">{{
+          game.black_player
+        }}</span>
+        <span v-if="game.black_elo" class="text-[10px] text-gray-500">({{ game.black_elo }})</span>
       </div>
     </div>
 
     <!-- Right Side Info (Result & Date) -->
-    <div class="col-span-4 flex flex-col items-end">
+    <div class="md:col-span-3 flex flex-col items-end text-right min-w-0">
       <span class="text-sm font-bold text-gray-200">{{ game.result }}</span>
-      <div class="flex items-center space-x-2 text-[10px] text-gray-500">
-        <span>{{ game.time_control }}</span>
-        <span>•</span>
-        <span>{{ game.played_date }}</span>
+      <div class="flex flex-wrap justify-end gap-x-2 text-[10px] text-gray-500">
+        <span v-if="game.time_control">{{ game.time_control }}</span>
+        <span v-if="game.played_date">{{ game.played_date }}</span>
       </div>
-      <span class="text-[9px] text-gray-600 italic mt-1 capitalize">{{ game.termination }}</span>
+      <span
+        v-if="game.termination_type"
+        class="text-[9px] text-gray-600 italic mt-1 capitalize"
+        >{{ game.termination_type }}</span
+      >
     </div>
-  </div>
+  </router-link>
 </template>

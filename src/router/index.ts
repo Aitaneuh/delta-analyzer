@@ -16,6 +16,11 @@ const routes = [
     name: 'not-found',
     component: NotFoundView,
   },
+  { path: '/legal', name: 'legal', component: () => import('../views/LegalNoticeView.vue') },
+  { path: '/privacy', name: 'privacy', component: () => import('../views/PrivacyView.vue') },
+  { path: '/terms', name: 'terms', component: () => import('../views/TermsView.vue') },
+  { path: '/licenses', name: 'licenses', component: () => import('../views/LicensesView.vue') },
+  { path: '/:pathMatch(.*)*', component: NotFoundView },
 ]
 
 const router = createRouter({

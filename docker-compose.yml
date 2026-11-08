@@ -1,0 +1,45 @@
+# Production stack. Deploy it in Portainer as a Stack from this Git repository (see DEPLOYMENT.md).
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: delta
+      POSTGRES_USER: delta
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - delta_pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U delta -d delta']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://delta:${POSTGRES_PASSWORD}@db:5432/delta
+      PUBLIC_URL: ${PUBLIC_URL:?Set PUBLIC_URL to the site's https address}
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
+      OPERATOR_NAME: ${OPERATOR_NAME:?Set OPERATOR_NAME}
+      OPERATOR_ADDRESS: ${OPERATOR_ADDRESS:?Set OPERATOR_ADDRESS}
+      CONTACT_EMAIL: ${CONTACT_EMAIL:?Set CONTACT_EMAIL}
+      HOSTING_COUNTRY: ${HOSTING_COUNTRY:-Switzerland}
+      GOVERNING_LAW: ${GOVERNING_LAW:-Switzerland}
+      SOURCE_CODE_URL: ${SOURCE_CODE_URL:-https://github.com/Aitaneuh/delta-analyzer}
+    ports:
+      - '${APP_PORT:-3000}:3000'
+    networks:
+      - internal
+
+networks:
+  internal:
+
+volumes:
+  delta_pgdata:

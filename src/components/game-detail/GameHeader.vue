@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { getEcoOpeningName } from '@/data/ecoOpenings'
 
 interface Props {
   white: string
@@ -16,16 +17,13 @@ const props = defineProps<Props>()
 const formattedDate = computed(() => {
   if (!props.date) return ''
 
-  try {
-    const dateObj = new Date(props.date)
-    return dateObj.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  } catch {
-    return props.date
-  }
+  // Dates are stored as UTC calendar days; formatting them locally can shift the day.
+  return new Date(props.date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
 })
 
 const displayTitle = computed(() => {
@@ -35,7 +33,9 @@ const displayTitle = computed(() => {
 })
 
 const displayEco = computed(() => {
-  return props.ecoCode ? `• ${props.ecoCode}` : ''
+  if (!props.ecoCode) return ''
+  const name = getEcoOpeningName(props.ecoCode)
+  return name ? `• ${props.ecoCode} ${name}` : `• ${props.ecoCode}`
 })
 
 const resultIcon = computed(() => {
@@ -47,10 +47,10 @@ const resultIcon = computed(() => {
 </script>
 
 <template>
-  <div class="bg-[#141619] border-b border-gray-800 px-6 py-4">
+  <div class="bg-[#141619] border-b border-gray-800 px-4 sm:px-6 py-4">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
-      <div class="flex items-center space-x-4">
-        <router-link to="/" class="text-gray-400 hover:text-gray-200 transition flex items-center space-x-1">
+      <div class="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
+        <router-link to="/" class="shrink-0 text-gray-400 hover:text-gray-200 transition flex items-center space-x-1">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
             class="w-5 h-5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -58,10 +58,10 @@ const resultIcon = computed(() => {
           <span class="text-sm font-medium">Back</span>
         </router-link>
 
-        <div class="h-6 w-px bg-gray-700"></div>
+        <div class="hidden sm:block h-6 w-px bg-gray-700"></div>
 
-        <div class="flex items-center space-x-3">
-          <h1 class="text-xl font-light text-gray-100 tracking-wide">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
+          <h1 class="min-w-0 wrap-anywhere text-lg sm:text-xl font-light text-gray-100 tracking-wide">
             {{ displayTitle }}
           </h1>
 

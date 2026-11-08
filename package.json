@@ -13,26 +13,35 @@
     "lint": "run-s lint:*",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/",
+    "dev:server": "node --watch --env-file-if-exists=.env server/index.ts",
+    "dev:db": "docker compose -f docker-compose.dev.yml up -d",
+    "start": "node server/index.ts",
+    "admin": "node server/admin.ts"
   },
   "dependencies": {
-    "@lichess-org/pgn-viewer": "^2.6.0",
-    "@tailwindcss/vite": "^4.3.0",
-    "chessground": "^9.0.0",
-    "pinia": "^3.0.4",
-    "tailwindcss": "^4.3.0",
-    "vue": "^3.5.32",
-    "vue-router": "^5.0.4"
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/helmet": "^13.2.0",
+    "@fastify/rate-limit": "^10.3.0",
+    "@fastify/static": "^9.3.0",
+    "chessops": "^0.15.1",
+    "fastify": "^5.12.8",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@lichess-org/pgn-viewer": "^2.6.0",
+    "@tailwindcss/vite": "^4.3.0",
     "@tsconfig/node24": "^24.0.4",
     "@types/jsdom": "^28.0.1",
     "@types/node": "^24.12.2",
+    "@types/pg": "^8.23.1",
     "@vitejs/plugin-vue": "^6.0.6",
     "@vitest/eslint-plugin": "^1.6.16",
     "@vue/eslint-config-typescript": "^14.7.0",
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.9.1",
+    "chessground": "^9.0.0",
     "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-oxlint": "~1.60.0",
@@ -41,14 +50,20 @@
     "jsdom": "^29.0.2",
     "npm-run-all2": "^8.0.4",
     "oxlint": "~1.60.0",
+    "pinia": "^3.0.4",
     "prettier": "3.8.3",
+    "stockfish": "^19.0.1",
+    "tailwindcss": "^4.3.0",
     "typescript": "~6.0.0",
     "vite": "^8.0.8",
     "vite-plugin-vue-devtools": "^8.1.1",
     "vitest": "^4.1.4",
+    "vue": "^3.5.32",
+    "vue-router": "^5.0.4",
     "vue-tsc": "^3.2.6"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
-  }
+  },
+  "license": "GPL-3.0-or-later"
 }

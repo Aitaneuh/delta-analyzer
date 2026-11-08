@@ -6,47 +6,17 @@
   --accent-hover-color: #9e1f1f;
 }
 
+/* Generates text-accent, bg-accent, border-accent, accent-accent, hover:*, bg-accent/10... */
+@theme {
+  --color-accent: var(--accent-color);
+  --color-accent-dark: var(--accent-hover-color);
+}
+
 html,
 body {
   background-color: #18181b;
   color: var(--text-color);
   padding: 0px;
   margin: 0px;
-  font-family: 'Jetbrains Mono', 'Courier New', Courier, monospace;
-}
-
-.accent {
-  color: var(--accent-color);
-}
-
-.accent-accent {
-  accent-color: var(--accent-color);
-}
-
-.border-accent {
-  border-color: var(--accent-color);
-}
-
-.focus-border-accent:focus {
-  border-color: var(--accent-color);
-}
-
-.bg-accent {
-  background-color: var(--accent-color);
-}
-
-.hover-accent {
-  color: var(--accent-color);
-}
-
-.hover-bg-accent {
-  background-color: var(--accent-color);
-}
-
-.hover-accent:hover {
-  color: var(--accent-hover-color);
-}
-
-.hover-bg-accent:hover {
-  background-color: var(--accent-hover-color);
+  font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
 }

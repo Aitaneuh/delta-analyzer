@@ -26,15 +26,12 @@ const formattedTimeControl = computed(() => {
   const match = props.timeControl.match(/^(\d+)(?:\+(\d+))?$/)
   if (!match) return props.timeControl
 
-  const baseSeconds = parseInt(match[1], 10)
+  const baseSeconds = parseInt(match[1]!, 10)
   const increment = match[2] ? parseInt(match[2], 10) : 0
 
-  const minutes = Math.floor(baseSeconds / 60)
+  const base = baseSeconds < 60 ? `${baseSeconds} sec` : `${Math.floor(baseSeconds / 60)} min`
 
-  if (increment > 0) {
-    return `${minutes} min + ${increment} sec`
-  }
-  return `${minutes} min`
+  return increment > 0 ? `${base} + ${increment} sec` : base
 })
 
 const resultText = computed(() => {
@@ -47,31 +44,26 @@ const resultText = computed(() => {
 const formattedDate = computed(() => {
   if (!props.date) return null
 
-  try {
-    const dateObj = new Date(props.date)
-    return dateObj.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  } catch {
-    return props.date
-  }
+  // Dates are stored as UTC calendar days; formatting them locally can shift the day.
+  return new Date(props.date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
 })
 </script>
 
 <template>
-  <div class="bg-[#1a1d21] rounded-lg border border-gray-800 p-6">
+  <div class="bg-[#1a1d21] rounded-lg border border-gray-800 p-4 sm:p-6">
     <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
       Game Information
     </h3>
 
-    <div class="space-y-3 text-sm">
+    <div class="space-y-3 text-sm wrap-anywhere">
       <!-- Players -->
-      <div class="flex items-center justify-between pb-3 border-b border-gray-800">
-        <div class="flex items-center space-x-2">
+      <div class="flex items-center justify-between gap-2 pb-3 border-b border-gray-800">
+        <div class="flex flex-wrap items-center gap-x-2 min-w-0">
           <span class="text-gray-500">White:</span>
           <span class="text-gray-200 font-medium">{{ white }}</span>
           <span v-if="whiteElo" class="text-gray-500">({{ whiteElo }})</span>
@@ -79,8 +71,8 @@ const formattedDate = computed(() => {
         <span v-if="winner === 'white'" class="text-green-500 font-semibold">✓</span>
       </div>
 
-      <div class="flex items-center justify-between pb-3 border-b border-gray-800">
-        <div class="flex items-center space-x-2">
+      <div class="flex items-center justify-between gap-2 pb-3 border-b border-gray-800">
+        <div class="flex flex-wrap items-center gap-x-2 min-w-0">
           <span class="text-gray-500">Black:</span>
           <span class="text-gray-200 font-medium">{{ black }}</span>
           <span v-if="blackElo" class="text-gray-500">({{ blackElo }})</span>
@@ -129,7 +121,7 @@ const formattedDate = computed(() => {
       <div v-if="link" class="pt-2">
         <a :href="link" target="_blank" rel="noopener noreferrer"
           class="inline-flex items-center space-x-1 text-accent hover:text-accent-dark transition">
-          <span>View on {{ source }}</span>
+          <span>{{ source === 'unknown' ? 'View original game' : `View on ${source}` }}</span>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
             class="w-4 h-4">
             <path stroke-linecap="round" stroke-linejoin="round"

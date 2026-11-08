@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { Chessground } from 'chessground'
 import type { Api } from 'chessground/api'
+import type { Color, Key } from 'chessground/types'
 
 // Official Lichess Layout & Theme Asset Streams
 import 'chessground/assets/chessground.base.css'
@@ -12,21 +13,38 @@ interface Props {
   fen?: string
   orientation?: 'white' | 'black'
   interactive?: boolean
+  lastMove?: string[] | null
+  check?: Color | false
+  arrow?: string | null // UCI move to draw, e.g. "e2e4"
 }
 
 const props = withDefaults(defineProps<Props>(), {
   fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
   orientation: 'white',
   interactive: false,
+  lastMove: null,
+  check: false,
+  arrow: null,
 })
 
 const boardContainer = ref<HTMLDivElement | null>(null)
 let boardApi: Api | null = null
 
+function showArrow() {
+  const move = props.arrow
+  boardApi?.setAutoShapes(
+    move
+      ? [{ orig: move.slice(0, 2) as Key, dest: move.slice(2, 4) as Key, brush: 'blue' }]
+      : [],
+  )
+}
+
 onMounted(() => {
   if (boardContainer.value) {
     boardApi = Chessground(boardContainer.value, {
       fen: props.fen,
+      lastMove: (props.lastMove as Key[] | null) ?? undefined,
+      check: props.check,
       orientation: props.orientation,
       viewOnly: false, // Must be false so the board registers right-clicks for shapes
       movable: {
@@ -48,13 +66,25 @@ onMounted(() => {
         duration: 200,
       },
     })
+    showArrow()
   }
 })
 
+watch(() => props.arrow, showArrow)
+
 watch(() => props.fen, (newFen) => {
   if (boardApi && newFen) {
-    boardApi.set({ fen: newFen })
+    boardApi.set({
+      fen: newFen,
+      lastMove: (props.lastMove as Key[] | null) ?? undefined,
+      check: props.check,
+    })
   }
+})
+
+onBeforeUnmount(() => {
+  boardApi?.destroy()
+  boardApi = null
 })
 
 watch(() => props.orientation, (newOrientation) => {

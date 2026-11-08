@@ -18,7 +18,7 @@ const emit = defineEmits<{
   <div class="flex items-center justify-center space-x-2 py-4">
     <!-- Go to start -->
     <button :disabled="isAtStart" @click="emit('goToStart')"
-      class="p-2 rounded bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-700 text-gray-300 transition"
+      class="p-3 sm:p-2 rounded bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-700 text-gray-300 transition cursor-pointer disabled:cursor-not-allowed"
       title="Go to start">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
         class="w-5 h-5">
@@ -28,7 +28,7 @@ const emit = defineEmits<{
 
     <!-- Previous move -->
     <button :disabled="isAtStart" @click="emit('prevMove')"
-      class="p-2 rounded bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-700 text-gray-300 transition"
+      class="p-3 sm:p-2 rounded bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-700 text-gray-300 transition cursor-pointer disabled:cursor-not-allowed"
       title="Previous move">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
         class="w-5 h-5">
@@ -38,7 +38,7 @@ const emit = defineEmits<{
 
     <!-- Next move -->
     <button :disabled="isAtEnd" @click="emit('nextMove')"
-      class="p-2 rounded bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-700 text-gray-300 transition"
+      class="p-3 sm:p-2 rounded bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-700 text-gray-300 transition cursor-pointer disabled:cursor-not-allowed"
       title="Next move">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
         class="w-5 h-5">
@@ -48,7 +48,7 @@ const emit = defineEmits<{
 
     <!-- Go to end -->
     <button :disabled="isAtEnd" @click="emit('goToEnd')"
-      class="p-2 rounded bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-700 text-gray-300 transition"
+      class="p-3 sm:p-2 rounded bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-700 text-gray-300 transition cursor-pointer disabled:cursor-not-allowed"
       title="Go to end">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
         class="w-5 h-5">
@@ -56,4 +56,7 @@ const emit = defineEmits<{
       </svg>
     </button>
   </div>
+  <p class="hidden lg:block -mt-2 pb-2 text-center text-xs text-gray-600">
+    ← → previous / next move · ↑ first · ↓ last
+  </p>
 </template>

@@ -1,0 +1,15 @@
+# Local development database: npm run dev:db
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: delta
+      POSTGRES_USER: delta
+      POSTGRES_PASSWORD: delta
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - delta_dev_pgdata:/var/lib/postgresql/data
+
+volumes:
+  delta_dev_pgdata:
