@@ -61,8 +61,14 @@ export interface ParsedGame {
   analysis?: GameAnalysis // Set once a computer analysis has finished
 }
 
-/** The fields shown in the Explore list. */
-export type GameSummary = Pick<
+/** The fields shown in the Explore list. Accuracy is null until the game has been analyzed. */
+export type GameSummary = GameListFields & {
+  analyzed: boolean
+  white_accuracy: number | null
+  black_accuracy: number | null
+}
+
+type GameListFields = Pick<
   ParsedGame,
   | 'id'
   | 'source'

@@ -4,7 +4,7 @@ import type { ParsedGame } from '../src/services/pgnParser.ts'
 
 export const PAGE_SIZE = 25
 
-const GAME_TYPES = ['bullet', 'blitz', 'rapid', 'classical', 'unknown']
+export const GAME_TYPES = ['bullet', 'blitz', 'rapid', 'classical', 'unknown']
 const RESULTS = ['1-0', '0-1', '1/2-1/2', '*']
 const TERMINATIONS = ['mate', 'resign', 'time', 'draw', 'other']
 const MAX_CP = 10000
@@ -95,6 +95,10 @@ export function buildGameListQuery(query: Query): GameListQuery {
 
   const imported = isoDate(query.imported_date)
   if (imported) conditions.push(`imported_at::date = ${add(imported)}`)
+
+  if (text(query.analyzed_only) === 'true') {
+    conditions.push('EXISTS (SELECT 1 FROM game_analyses a WHERE a.game_id = games.id)')
+  }
 
   return {
     where: conditions.length ? `WHERE ${conditions.join(' AND ')}` : '',

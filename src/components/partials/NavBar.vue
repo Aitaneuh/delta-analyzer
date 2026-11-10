@@ -9,6 +9,7 @@
     <ul>
       <li><router-link to="/">Explore</router-link></li>
       <li><router-link to="/import">Import</router-link></li>
+      <li><router-link to="/stats">Statistics</router-link></li>
     </ul>
     <div class="account">
       <template v-if="auth.ready">

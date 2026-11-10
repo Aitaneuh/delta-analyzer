@@ -34,6 +34,7 @@ export interface GameFilters {
   time_control_kind: '' | 'standard' | 'increment'
   played_date: string
   imported_date: string
+  analyzed_only: boolean
 }
 
 export interface ImportResult {
@@ -62,6 +63,7 @@ export function createEmptyFilters(): GameFilters {
     time_control_kind: '',
     played_date: '',
     imported_date: '',
+    analyzed_only: false,
   }
 }
 
@@ -69,7 +71,7 @@ function filtersToQuery(filters: GameFilters, page: number): string {
   const query = new URLSearchParams({ page: String(page) })
   for (const [key, value] of Object.entries(filters)) {
     for (const item of Array.isArray(value) ? value : [value]) {
-      if (item !== '' && item !== null) query.append(key, String(item))
+      if (item !== '' && item !== null && item !== false) query.append(key, String(item))
     }
   }
   return query.toString()

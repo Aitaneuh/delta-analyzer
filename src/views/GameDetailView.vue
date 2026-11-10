@@ -38,6 +38,11 @@ watch(
   { immediate: true },
 )
 
+// Only a finished analysis has final accuracies; the report follows the "Hide analysis" toggle
+const savedReport = computed(() =>
+  gameStore.currentGame?.analysis ? gameStore.analysisReport : null,
+)
+
 const handleGoToMove = (index: number) => {
   gameStore.goToMove(index)
 }
@@ -101,6 +106,8 @@ onBeforeUnmount(() => {
         :eco-code="gameStore.gameMetadata.ecoCode"
         :date="gameStore.gameMetadata.date"
         :winner="gameStore.gameMetadata.winner"
+        :white-accuracy="savedReport?.white.accuracy"
+        :black-accuracy="savedReport?.black.accuracy"
       />
 
       <!-- Main Content -->

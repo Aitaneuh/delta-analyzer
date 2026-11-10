@@ -13,7 +13,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY server ./server
-COPY src/services/pgnParser.ts ./src/services/pgnParser.ts
+COPY src/services/pgnParser.ts src/services/moveScoring.ts ./src/services/
 COPY --from=build /app/dist ./dist
 USER node
 EXPOSE 3000

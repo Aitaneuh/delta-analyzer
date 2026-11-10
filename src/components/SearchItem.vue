@@ -127,6 +127,10 @@ const handleClear = () => {
             />
             <span class="text-sm">{{ term }}</span>
           </label>
+          <label class="flex items-center space-x-2 cursor-pointer hover:text-white pt-2">
+            <input type="checkbox" v-model="localFilters.analyzed_only" class="accent-accent" />
+            <span class="text-sm">Analyzed only</span>
+          </label>
         </div>
       </div>
     </div>
