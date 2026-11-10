@@ -31,6 +31,11 @@ describe('buildGameListQuery', () => {
     expect(params).toEqual([['blitz']])
   })
 
+  it('can keep only analyzed games', () => {
+    expect(buildGameListQuery({ analyzed_only: 'true' }).where).toContain('game_analyses')
+    expect(buildGameListQuery({ analyzed_only: 'false' }).where).toBe('')
+  })
+
   it('ignores invalid numbers and dates', () => {
     expect(
       buildGameListQuery({ min_elo: 'abc', max_elo: '', played_date: 'yesterday', page: '-4' }),

@@ -96,6 +96,10 @@ export function buildGameListQuery(query: Query): GameListQuery {
   const imported = isoDate(query.imported_date)
   if (imported) conditions.push(`imported_at::date = ${add(imported)}`)
 
+  if (text(query.analyzed_only) === 'true') {
+    conditions.push('EXISTS (SELECT 1 FROM game_analyses a WHERE a.game_id = games.id)')
+  }
+
   return {
     where: conditions.length ? `WHERE ${conditions.join(' AND ')}` : '',
     params,

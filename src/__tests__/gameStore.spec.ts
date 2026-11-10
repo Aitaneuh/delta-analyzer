@@ -61,6 +61,7 @@ describe('game store', () => {
       game_types: ['blitz', 'rapid'],
       min_elo: 1500,
       max_elo: '',
+      analyzed_only: true,
     })
 
     const query = new URLSearchParams(calls[calls.length - 1]!.url.split('?')[1])
@@ -70,6 +71,7 @@ describe('game store', () => {
     expect(query.get('min_elo')).toBe('1500')
     expect(query.has('max_elo')).toBe(false)
     expect(query.has('eco_code')).toBe(false)
+    expect(query.get('analyzed_only')).toBe('true')
   })
 
   it('confirms permanence when uploading', async () => {
