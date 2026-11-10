@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import GameItem from './GameItem.vue'
+import LoadingSpinner from './LoadingSpinner.vue'
 import { useGameStore } from '@/stores/gameStore'
 
 const store = useGameStore()
+
+// Before the first results arrive there is nothing to dim, so placeholders hold the space
+const firstLoad = computed(() => store.listLoading && store.games.length === 0)
 
 onMounted(() => store.fetchGames())
 </script>
@@ -11,14 +15,30 @@ onMounted(() => store.fetchGames())
 <template>
   <div class="space-y-3">
     <!-- Header/Count -->
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-sm font-medium text-gray-400">Showing {{ store.totalGames }} games</h2>
+    <div class="flex justify-between items-center mb-4 min-h-5">
+      <LoadingSpinner v-if="firstLoad" label="Loading games…" />
+      <h2 v-else class="text-sm font-medium text-gray-400">Showing {{ store.totalGames }} games</h2>
+      <LoadingSpinner v-if="store.listLoading && !firstLoad" size="sm" label="Updating results" />
     </div>
 
     <p v-if="store.listError" role="alert" class="text-sm text-red-400">{{ store.listError }}</p>
 
-    <!-- List -->
-    <div v-else-if="store.games.length > 0" class="flex flex-col space-y-2">
+    <!-- Placeholders -->
+    <div v-else-if="firstLoad" class="flex flex-col space-y-2" aria-hidden="true">
+      <div
+        v-for="index in 5"
+        :key="index"
+        class="h-[74px] rounded-lg border border-gray-800 bg-[#1a1d21] motion-safe:animate-pulse"
+      ></div>
+    </div>
+
+    <!-- List. The previous results stay, dimmed, while new ones load. -->
+    <div
+      v-else-if="store.games.length > 0"
+      class="flex flex-col space-y-2 transition-opacity"
+      :class="{ 'opacity-50 pointer-events-none': store.listLoading }"
+      :aria-busy="store.listLoading"
+    >
       <GameItem v-for="game in store.games" :key="game.id" :game="game" />
     </div>
 

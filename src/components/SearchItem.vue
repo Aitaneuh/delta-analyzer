@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
 import { createEmptyFilters, useGameStore } from '@/stores/gameStore'
+import LoadingSpinner from './LoadingSpinner.vue'
 
 const store = useGameStore()
 // Initialize local state with current store values
@@ -210,8 +211,10 @@ const handleClear = () => {
     <div class="flex flex-col sm:flex-row gap-3">
       <button
         type="submit"
-        class="w-full sm:w-auto cursor-pointer bg-accent hover:bg-accent-dark text-white font-bold py-2 px-6 rounded transition shadow-lg"
+        :disabled="store.listLoading"
+        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 cursor-pointer disabled:cursor-wait disabled:opacity-80 bg-accent hover:bg-accent-dark text-white font-bold py-2 px-6 rounded transition shadow-lg"
       >
+        <LoadingSpinner v-if="store.listLoading" size="sm" inverse label="Filtering" />
         Filter
       </button>
       <button
