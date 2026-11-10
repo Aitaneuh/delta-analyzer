@@ -89,11 +89,15 @@ const PLAYER_BREAKDOWNS = `${PLAYED_GAMES}
   WHERE d.bucket IS NOT NULL
   GROUP BY d.dimension, d.bucket`
 
+// Games without a time control (e.g. against a computer) carry placeholder ratings, so they
+// still count as games but their ratings are ignored
+const RATED = `p.rating IS NOT NULL AND p.game_type <> 'unknown'`
+
 const PLAYER_RATINGS = `${PLAYED_GAMES}
   SELECT p.game_type, max(p.name) AS name, count(*)::int AS games,
-    max(p.rating) AS peak,
+    max(p.rating) FILTER (WHERE ${RATED}) AS peak,
     (array_agg(p.rating ORDER BY p.played_date DESC NULLS LAST)
-      FILTER (WHERE p.rating IS NOT NULL))[1] AS latest,
+      FILTER (WHERE ${RATED}))[1] AS latest,
     min(p.played_date) AS first_played,
     max(p.played_date) AS last_played
   FROM played p
@@ -102,7 +106,7 @@ const PLAYER_RATINGS = `${PLAYED_GAMES}
 const PLAYER_RATING_HISTORY = `${PLAYED_GAMES}
   SELECT p.game_type, to_char(p.played_date, 'YYYY-MM') AS month, round(avg(p.rating))::int AS rating
   FROM played p
-  WHERE p.rating IS NOT NULL AND p.played_date IS NOT NULL
+  WHERE ${RATED} AND p.played_date IS NOT NULL
   GROUP BY 1, 2
   ORDER BY 2`
 

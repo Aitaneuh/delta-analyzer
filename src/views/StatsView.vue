@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import GlobalStats from '@/components/stats/GlobalStats.vue'
 import PlayerStats from '@/components/stats/PlayerStats.vue'
+import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useStatsStore } from '@/stores/statsStore'
 import { GAME_TYPES, bandLabel, gameTypeLabel, queryText } from '@/services/stats'
@@ -89,9 +90,12 @@ const hasData = computed(() => (showingPlayer.value ? !!store.player : !!store.g
             ← All games
           </RouterLink>
         </p>
-        <h1 class="text-2xl font-bold truncate">
-          {{ showingPlayer ? (store.player?.name ?? player) : 'Statistics' }}
-        </h1>
+        <div class="flex items-center gap-3 min-w-0">
+          <h1 class="text-2xl font-bold truncate">
+            {{ showingPlayer ? (store.player?.name ?? player) : 'Statistics' }}
+          </h1>
+          <LoadingSpinner v-if="store.loading && hasData" size="sm" label="Updating statistics" />
+        </div>
         <p v-if="showingPlayer" class="text-sm text-gray-500 mt-1">
           Every game on this site with this player name, live.
         </p>
@@ -184,13 +188,30 @@ const hasData = computed(() => (showingPlayer.value ? !!store.player : !!store.g
     <div
       v-else-if="hasData"
       class="transition-opacity"
-      :class="store.loading ? 'opacity-50' : ''"
+      :class="store.loading ? 'opacity-50 pointer-events-none' : ''"
       :aria-busy="store.loading"
     >
       <PlayerStats v-if="showingPlayer && store.player" :stats="store.player" :bands="bands" />
       <GlobalStats v-else-if="!showingPlayer && store.global" :stats="store.global" />
     </div>
 
-    <p v-else-if="store.loading" class="text-sm text-gray-500">Loading statistics…</p>
+    <!-- First load: placeholders in the page's shape, so nothing jumps when the numbers arrive -->
+    <div v-else-if="store.loading" class="space-y-6">
+      <LoadingSpinner :label="showingPlayer ? 'Calculating statistics…' : 'Loading statistics…'" />
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3" aria-hidden="true">
+        <div
+          v-for="index in 8"
+          :key="index"
+          class="h-[74px] rounded-lg border border-gray-800 bg-[#1a1d21] motion-safe:animate-pulse"
+        ></div>
+      </div>
+      <div class="grid lg:grid-cols-2 gap-6" aria-hidden="true">
+        <div
+          v-for="index in 2"
+          :key="index"
+          class="h-64 rounded-lg border border-gray-800 bg-[#1a1d21] motion-safe:animate-pulse"
+        ></div>
+      </div>
+    </div>
   </div>
 </template>
