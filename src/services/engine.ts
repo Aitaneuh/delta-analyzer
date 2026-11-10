@@ -4,8 +4,9 @@
  */
 import engineUrl from 'stockfish/bin/stockfish-19-lite-single.js?url'
 import wasmUrl from 'stockfish/bin/stockfish-19-lite-single.wasm?url'
+import { MATE_SCORE } from './moveScoring'
 
-export const MATE_SCORE = 10000
+export { MATE_SCORE }
 
 /** A position's score from White's point of view. */
 export interface EngineEval {

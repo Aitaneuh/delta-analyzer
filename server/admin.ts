@@ -8,6 +8,7 @@
 import type { PoolClient } from 'pg'
 import { pool } from './db.ts'
 import { anonymizePgn } from './gameQueries.ts'
+import { refreshStats } from './statsRefresh.ts'
 
 const ANONYMOUS = 'Anonymous'
 
@@ -24,6 +25,9 @@ async function moderated(work: (client: PoolClient) => Promise<void>): Promise<v
   } finally {
     client.release()
   }
+
+  // Leaderboards hold player names, so a removed name must leave them right away
+  await refreshStats({ force: true })
 }
 
 async function anonymize(username: string): Promise<void> {

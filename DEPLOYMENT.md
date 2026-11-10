@@ -60,6 +60,8 @@ node server/admin.ts anonymize LichessUsername
 node server/admin.ts remove GAME_ID
 ```
 
+Both commands rebuild the statistics straight away, so a removed name also leaves the leaderboards. Otherwise statistics update by themselves every hour.
+
 ## 5. Backups
 
 Games are permanent, so back up the database. From the `db` container, or a scheduled job on the host:

@@ -4,7 +4,7 @@ import type { ParsedGame } from '../src/services/pgnParser.ts'
 
 export const PAGE_SIZE = 25
 
-const GAME_TYPES = ['bullet', 'blitz', 'rapid', 'classical', 'unknown']
+export const GAME_TYPES = ['bullet', 'blitz', 'rapid', 'classical', 'unknown']
 const RESULTS = ['1-0', '0-1', '1/2-1/2', '*']
 const TERMINATIONS = ['mate', 'resign', 'time', 'draw', 'other']
 const MAX_CP = 10000

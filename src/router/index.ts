@@ -4,11 +4,10 @@ import GameDetailView from '../views/GameDetailView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
 import ImportView from '../views/ImportView.vue'
 
-
 const routes = [
   { path: '/', name: 'explore', component: HomeView },
   { path: '/import', name: 'import', component: ImportView },
-  // { path: '/stats', name: 'stats', component:  },
+  { path: '/stats', name: 'stats', component: () => import('../views/StatsView.vue') },
 
   { path: '/game/:id', name: 'game-detail', component: GameDetailView },
   {

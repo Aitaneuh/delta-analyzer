@@ -9,6 +9,8 @@ import { registerAuth } from './auth.ts'
 import { config } from './config.ts'
 import { migrate, pool } from './db.ts'
 import { registerGames } from './games.ts'
+import { registerStats } from './stats.ts'
+import { scheduleStatsRefresh } from './statsRefresh.ts'
 
 const DIST_DIR = fileURLToPath(new URL('../dist/', import.meta.url))
 
@@ -48,6 +50,7 @@ await app.register(rateLimit, {
 
 registerAuth(app)
 registerGames(app)
+registerStats(app)
 
 app.get('/api/health', async () => {
   await pool.query('SELECT 1')
@@ -86,6 +89,7 @@ app.setErrorHandler((error: { statusCode?: number; message?: string }, request, 
 await migrate()
 await app.listen({ port: config.port, host: '0.0.0.0' })
 console.log(`Delta Analyzer is listening on port ${config.port}`)
+scheduleStatsRefresh((err) => app.log.error({ err }, 'Statistics refresh failed'))
 
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.once(signal, () => {
