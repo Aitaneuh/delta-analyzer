@@ -5,13 +5,18 @@ import { requireUser } from './auth.ts'
 import { pool } from './db.ts'
 import { PAGE_SIZE, buildGameListQuery, contentHash, parseAnalysis } from './gameQueries.ts'
 import { LichessBusyError, fetchRecentGames } from './lichess.ts'
+import { saveAnalysisStats } from './statsRefresh.ts'
 
 const MAX_GAMES_PER_UPLOAD = 200
 const LICHESS_IMPORT_SIZES = [10, 25, 50, 100]
 
+// The accuracy columns come from game_analysis_stats, joined as "s"
 const SUMMARY_COLUMNS = `id, imported_at AS imported_date, source, event, played_date,
   white_player, black_player, white_elo, black_elo, result, winner, termination_type,
-  time_control, game_type, eco_code, opening_name`
+  time_control, game_type, eco_code, opening_name,
+  EXISTS (SELECT 1 FROM game_analyses a WHERE a.game_id = games.id) AS analyzed,
+  round(s.white_accuracy::numeric, 1)::float8 AS white_accuracy,
+  round(s.black_accuracy::numeric, 1)::float8 AS black_accuracy`
 
 const DETAIL_COLUMNS = `games.id, imported_at AS imported_date, source, link, event, played_date,
   white_player, black_player, white_elo, black_elo, white_country, black_country,
@@ -108,7 +113,9 @@ export function registerGames(app: FastifyInstance): void {
     const [count, games] = await Promise.all([
       pool.query<{ total: number }>(`SELECT count(*)::int AS total FROM games ${where}`, params),
       pool.query(
-        `SELECT ${SUMMARY_COLUMNS} FROM games ${where}
+        `SELECT ${SUMMARY_COLUMNS}
+         FROM games LEFT JOIN game_analysis_stats s ON s.game_id = games.id
+         ${where}
          ORDER BY imported_at DESC, id
          LIMIT ${PAGE_SIZE} OFFSET $${params.length + 1}`,
         [...params, (page - 1) * PAGE_SIZE],
@@ -202,8 +209,8 @@ export function registerGames(app: FastifyInstance): void {
     },
     async (request, reply) => {
       const { id } = request.params as { id: string }
-      const game = await pool.query<{ moves_count: number }>(
-        'SELECT moves_count FROM games WHERE id = $1',
+      const game = await pool.query<{ moves_count: number; moves: string[]; initial_fen: string }>(
+        'SELECT moves_count, moves, initial_fen FROM games WHERE id = $1',
         [id],
       )
       if (!game.rows[0]) return reply.code(404).send({ error: 'Game not found.' })
@@ -223,6 +230,14 @@ export function registerGames(app: FastifyInstance): void {
         'SELECT engine, depth, evals FROM game_analyses WHERE game_id = $1',
         [id],
       )
+
+      // Summarized from the analysis that was kept, so statistics and the game list see it at
+      // once. If this fails, the hourly statistics job summarizes it instead.
+      try {
+        await saveAnalysisStats(pool, id, game.rows[0], rows[0].evals)
+      } catch (err) {
+        request.log.warn({ err }, 'Could not summarize the analysis')
+      }
       return rows[0]
     },
   )

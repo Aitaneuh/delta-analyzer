@@ -2,7 +2,7 @@
  * Keeps the statistics views up to date. The aggregation reads every game, so it runs in the
  * background on a timer instead of when someone opens the page.
  */
-import type { PoolClient } from 'pg'
+import type { Pool, PoolClient } from 'pg'
 import type { PositionEval } from '../src/services/moveScoring.ts'
 import { pool } from './db.ts'
 import { summarizeAnalysis, type AnalysisStats } from './statsQueries.ts'
@@ -24,9 +24,28 @@ const ANALYSIS_STATS_COLUMNS: (keyof AnalysisStats)[] = [
   'black_blunders',
 ]
 
-/** Scores any analysis saved since the last run. Paging by ID guarantees this finishes. */
-async function summarizeNewAnalyses(client: PoolClient): Promise<void> {
+/** Saves a game's accuracy summary. Keeps the existing one if there is one. */
+export async function saveAnalysisStats(
+  db: Pool | PoolClient,
+  gameId: string,
+  game: { moves: string[]; initial_fen: string },
+  evals: PositionEval[],
+): Promise<void> {
+  const stats = summarizeAnalysis(game.moves, game.initial_fen, evals)
   const placeholders = ANALYSIS_STATS_COLUMNS.map((_, index) => `$${index + 2}`).join(', ')
+  await db.query(
+    `INSERT INTO game_analysis_stats (game_id, ${ANALYSIS_STATS_COLUMNS.join(', ')})
+     VALUES ($1, ${placeholders})
+     ON CONFLICT (game_id) DO NOTHING`,
+    [gameId, ...ANALYSIS_STATS_COLUMNS.map((column) => stats[column])],
+  )
+}
+
+/**
+ * Scores any analysis that has no summary yet. New analyses are scored when they are saved, so
+ * this catches up on older ones and any that failed. Paging by ID guarantees this finishes.
+ */
+async function summarizeNewAnalyses(client: PoolClient): Promise<void> {
   let lastId = ''
 
   for (;;) {
@@ -47,13 +66,7 @@ async function summarizeNewAnalyses(client: PoolClient): Promise<void> {
     )
 
     for (const row of rows) {
-      const stats = summarizeAnalysis(row.moves, row.initial_fen, row.evals)
-      await client.query(
-        `INSERT INTO game_analysis_stats (game_id, ${ANALYSIS_STATS_COLUMNS.join(', ')})
-         VALUES ($1, ${placeholders})
-         ON CONFLICT (game_id) DO NOTHING`,
-        [row.game_id, ...ANALYSIS_STATS_COLUMNS.map((column) => stats[column])],
-      )
+      await saveAnalysisStats(client, row.game_id, row, row.evals)
     }
 
     if (rows.length < ANALYSIS_BATCH_SIZE) return
